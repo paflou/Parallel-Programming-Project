@@ -46,18 +46,20 @@ void compute_max_density_omp(double *rho_, int N)
 	max_j = 0;
 
 	#pragma omp parallel for
-	for (int i = 0; i < N; ++i)
-		for (int j = 0; j < N; ++j)
+	for(int k=0;k<N*N;k++)
+	{
+		int i = k/N;
+		int j = k%N;
+
+		if (rho_[i*N + j] > max_rho){
+		#pragma omp critical
 		{
-			if (rho_[i*N + j] > max_rho){
-				#pragma omp critical
-			{
-				max_rho = rho_[i*N + j];
-				max_i = i;
-				max_j = j;
-			}
-			}
+			max_rho = rho_[i*N + j];
+			max_i = i;
+			max_j = j;
 		}
+		}
+	}
 
 	printf("=====================================\n");
 	printf("Output of compute_max_omp_density():\n");
