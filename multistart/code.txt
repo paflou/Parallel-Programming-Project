@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include <omp.h>
 
-#define NUM_THREADS 8
+#define NUM_THREADS 64
 
 #define MAXVARS		(250)	/* max # of variables	     */
 #define EPSMIN		(1E-6)	/* ending value of stepsize  */
@@ -92,11 +92,11 @@ int main(int argc, char *argv[])
 	t0 = get_wtime();
 	unsigned short buffer[3];
 
-	#pragma omp parallel for private(fx, nt, nf, startpt, endpt) firstprivate(local_best) schedule(guided)
+	#pragma omp parallel for private(fx, nt, nf, startpt, endpt) firstprivate(local_best) default(shared) schedule(static)
 	for (trial = 0; trial < ntrials; trial++) {
-		buffer[0] = trial;
-		buffer[1] = trial + 1;
-		buffer[2] = trial + 2;
+		buffer[0] = omp_get_thread_num();
+		buffer[1] = omp_get_thread_num() + 1;
+		buffer[2] = omp_get_thread_num() + 2;
 
 		/* starting guess for rosenbrock test function, search space in [-2, 2) */
 		for (i = 0; i < nvars; i++) {
