@@ -164,3 +164,14 @@ T(2) = 0.4 + (1 - 0.4) / 2
 Speedup = 1 / 0.7
 
 
+
+SERIAL CODE FINAL RESULTS:
+Elapsed time = 42.432 s
+Total number of trials = 64
+Total number of function evaluations = 640308
+Best result at trial 40 used 1250 iterations, 10005 function calls and returned
+x[  0] =   1.0074912e+00 
+x[  1] =   1.0150409e+00 
+x[  2] =   1.0303266e+00 
+x[  3] =   1.0617248e+00 
+f(x) =   1.2043904e-03
