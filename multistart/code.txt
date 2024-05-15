@@ -90,10 +90,10 @@ int main(int argc, char *argv[])
 	local_best.fx = 1e10;
 
 	t0 = get_wtime();
-	unsigned short buffer[3];
 
 	#pragma omp parallel for private(fx, nt, nf, startpt, endpt) firstprivate(local_best) default(shared) schedule(static)
 	for (trial = 0; trial < ntrials; trial++) {
+		unsigned short buffer[3];
 		buffer[0] = omp_get_thread_num();
 		buffer[1] = omp_get_thread_num() + 1;
 		buffer[2] = omp_get_thread_num() + 2;
