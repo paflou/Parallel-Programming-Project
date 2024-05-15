@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include <omp.h>
 
-#define NUM_THREADS 64
+#define NUM_THREADS 8
 
 #define MAXVARS		(250)	/* max # of variables	     */
 #define EPSMIN		(1E-6)	/* ending value of stepsize  */
@@ -56,8 +56,8 @@ struct calculations {
 int main(int argc, char *argv[])
 {
 	/* problem parameters */
-	int nvars = 4;		/* number of variables (problem dimension) */
-	int ntrials = 64;	/* number of trials */
+	int nvars = 8;		/* number of variables (problem dimension) */
+	int ntrials = 512;	/* number of trials */
 	double lower[MAXVARS], upper[MAXVARS];	/* lower and upper bounds */
 
 	omp_set_num_threads(NUM_THREADS);
@@ -92,20 +92,26 @@ int main(int argc, char *argv[])
 	t0 = get_wtime();
 	unsigned short buffer[3];
 
-	#pragma omp parallel for private(fx, nt, nf, startpt, endpt) firstprivate(local_best) default(shared) schedule(static)
+	#pragma omp parallel
+	#pragma omp single nowait
 	for (trial = 0; trial < ntrials; trial++) {
-		buffer[0] = omp_get_thread_num();
-		buffer[1] = omp_get_thread_num() + 1;
-		buffer[2] = omp_get_thread_num() + 2;
+		buffer[0] = (short)trial;
+		buffer[1] = (short)trial + 1;
+		buffer[2] = (short)trial + 2;
 
 		/* starting guess for rosenbrock test function, search space in [-2, 2) */
+
+		//No need to parallelize, too small a number to make a difference
+		//do it if you have the time
 		for (i = 0; i < nvars; i++) {
 			startpt[i] = lower[i] + (upper[i]-lower[i])*erand48(buffer);
 		}
-
+		#pragma omp task private(fx, nt, nf, endpt) firstprivate(local_best, trial, startpt, buffer)
+		{
 		int term = -1;
     	mds(startpt, endpt, nvars, &fx, eps, maxfevals, maxiter, mu, theta, delta,
         &nt, &nf, lower, upper, &term);
+		
 #if DEBUG
 		printf("\n\n\nMDS %d USED %d ITERATIONS AND %d FUNCTION CALLS, AND RETURNED\n", trial, nt, nf);
 		for (i = 0; i < nvars; i++)
@@ -126,9 +132,10 @@ int main(int argc, char *argv[])
 
 		#pragma omp critical
 		{
-		if(local_best.fx < best.fx) {
-			best = local_best;
-			//printf("Process %d, best result yet is f(x) = %15.7le\n", omp_get_thread_num(), best.fx);
+			if(local_best.fx < best.fx) {
+				best = local_best;
+				//printf("Process %d, best result yet is f(x) = %15.7le\n", omp_get_thread_num(), best.fx);
+			}
 		}
 		}
 	}

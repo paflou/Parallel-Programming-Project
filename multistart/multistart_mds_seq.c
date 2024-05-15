@@ -99,7 +99,7 @@ int main(int argc, char *argv[])
 
 		printf("f(x) = %15.7le\n", fx);
 #endif
-		printf("current result is f(x) = %15.7le, best result is f(x) = %15.7le\n", fx, best_fx);
+		//printf("current result is f(x) = %15.7le, best result is f(x) = %15.7le\n", fx, best_fx);
 
 		/* keep the best solution */
 		if (fx < best_fx) {

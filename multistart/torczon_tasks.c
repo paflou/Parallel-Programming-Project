@@ -154,6 +154,8 @@ void mds(double *point, double *endpoint, int n, double *val, double eps, int ma
 	*val = fu[0];
 	terminate = 0;
 	iter = 0;
+
+
 	while (terminate == 0 && iter < maxiter) {
 		k = minimum_simplex(fu, n);
 		swap_simplex(u, fu, n, k, 0);
@@ -180,21 +182,26 @@ void mds(double *point, double *endpoint, int n, double *val, double eps, int ma
 			// Consider failure when out of bounds so set found_better = 0
 			// when out of bounds!!!
 			found_better = 1;
-			for (i = 1; i < n + 1; i++) {
-				for (j = 0; j < n; j++) {
+
+			#pragma omp parallel
+			#pragma omp single nowait
+			{
+			for (i = 1; i < (n + 1) && found_better==1; i++) {
+				for (j = 0; j < n && found_better==1; j++) {
+					#pragma omp task shared(r) firstprivate(i,j,u)
 					r[i * n + j] = u[0 * n + j] - (u[i * n + j] - u[0 * n + j]);
 					if (r[i * n + j] > xr[j] || r[i * n + j] < xl[j]) {
 						found_better = 0;
-						break;
 					}
 				}
-				if (found_better == 0)
-					break;
+			}
 			}
 
 			if (found_better == 1) {
 				for (i = 1; i < n + 1; i++) {
+					#pragma omp task shared(r) firstprivate(i,u)
 					for (j = 0; j < n; j++) {
+						#pragma omp task shared(r) firstprivate(i,j,u)
 						r[i * n + j] = u[0 * n + j] - (u[i * n + j] - u[0 * n + j]);
 					}
 
