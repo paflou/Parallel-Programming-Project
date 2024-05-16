@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include <omp.h>
 
-#define NUM_THREADS 16
+#define NUM_THREADS 8
 
 #define MAXVARS		(250)	/* max # of variables	     */
 #define EPSMIN		(1E-6)	/* ending value of stepsize  */
@@ -25,9 +25,11 @@ double f(double *x, int n)
     double fv;
     int i;
 
+	#pragma omp atomic
     funevals++;
     fv = 0.0;
     for (i=0; i<n-1; i++)   /* rosenbrock */
+		#pragma omp critical
         fv = fv + 100.0*pow((x[i+1]-x[i]*x[i]),2) + pow((x[i]-1.0),2);
 		usleep(1);	/* do not remove, introduces some artificial work */
 

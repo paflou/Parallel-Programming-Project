@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include <omp.h>
 
-#define NUM_THREADS 16
+#define NUM_THREADS 4
 
 #define MAXVARS		(250)	/* max # of variables	     */
 #define EPSMIN		(1E-6)	/* ending value of stepsize  */
@@ -25,9 +25,12 @@ double f(double *x, int n)
     double fv;
     int i;
 
+	/*avoid race conditions*/
+	#pragma omp atomic
     funevals++;
-    fv = 0.0;
+	fv = 0.0;
     for (i=0; i<n-1; i++)   /* rosenbrock */
+		#pragma omp critical
         fv = fv + 100.0*pow((x[i+1]-x[i]*x[i]),2) + pow((x[i]-1.0),2);
 		usleep(1);	/* do not remove, introduces some artificial work */
 
@@ -138,15 +141,14 @@ int main(int argc, char *argv[])
 	}
 	t1 = get_wtime();
 
-	//printf("\n\nFINAL RESULTS:\n");
-	//printf("Elapsed time = %.3lf s\n", t1-t0);
-	printf("Elapsed time = %.3lf s ", t1-t0);
-	//printf("Total number of trials = %d\n", ntrials);
-	//printf("Total number of function evaluations = %ld\n", funevals);
-	//printf("Best result at trial %d used %d iterations, %d function calls and returned\n", best.trial, best.nt, best.nf);
-	//for (i = 0; i < nvars; i++) {
-	//	printf("x[%3d] = %15.7le \n", i, best.pt[i]);
-	//}
+	printf("\n\nFINAL RESULTS:\n");
+	printf("Elapsed time = %.3lf s\n", t1-t0);
+	printf("Total number of trials = %d\n", ntrials);
+	printf("Total number of function evaluations = %ld\n", funevals);
+	printf("Best result at trial %d used %d iterations, %d function calls and returned\n", best.trial, best.nt, best.nf);
+	for (i = 0; i < nvars; i++) {
+		printf("x[%3d] = %15.7le \n", i, best.pt[i]);
+	}
 	printf("f(x) = %15.7le\n", best.fx);
 
 	return 0;

@@ -6,8 +6,6 @@
 #include <unistd.h>
 #include <mpi.h>
 
-#define NUM_THREADS 8
-
 #define MAXVARS		(250)	/* max # of variables	     */
 #define EPSMIN		(1E-6)	/* ending value of stepsize  */
 
@@ -68,12 +66,11 @@ int main(int argc, char *argv[])
 	calc local_best;
 	local_best.fx = 1e10;
 
+    // Create the MPI data type
     MPI_Datatype MPI_DATA_TYPE;
+    int block_lengths[5] = {MAXVARS, 1, 1, 1, 1};
 
-    // Define the structure in terms of MPI data types
-    int block_lengths[5] = {MAXVARS, 1, 1, 1, 1};     // Number of elements in each block
-    MPI_Aint displacements[5];                        // Displacement of each element from the start of the struct
-    // Calculate displacements of the struct members
+    MPI_Aint displacements[5];
     displacements[0] = offsetof(calc, pt);
     displacements[1] = offsetof(calc, fx);
     displacements[2] = offsetof(calc, trial);
@@ -86,10 +83,9 @@ int main(int argc, char *argv[])
         MPI_INT,
         MPI_INT,
         MPI_INT
-    };    // Types of the struct elements
+    };
 
 
-    // Create the MPI data type
     MPI_Type_create_struct(5, block_lengths, displacements, types, &MPI_DATA_TYPE);
     MPI_Type_commit(&MPI_DATA_TYPE);
 
@@ -125,10 +121,9 @@ int main(int argc, char *argv[])
 	for (i = 0; i < MAXVARS; i++) lower[i] = -2.0;	/* lower bound: -2.0 */
 	for (i = 0; i < MAXVARS; i++) upper[i] = +2.0;	/* upper bound: +2.0 */
 
+	unsigned long total_funevals;
 	t0 = get_wtime();
-
 	unsigned short buffer[3];
-
     for (trial = local_start; trial < local_end; trial++) {
 		buffer[0] = (short)trial;
 		buffer[1] = (short)trial + 1;
@@ -150,7 +145,6 @@ int main(int argc, char *argv[])
 		printf("f(x) = %15.7le\n", fx);
 #endif
 		//if(omp_get_thread_num()==1)
-		//printf("Process %d, current result is f(x) = %15.7le, best result is f(x) = %15.7le\n", omp_get_thread_num(), fx, best.fx);
 		
 		/* keep the local best solution to minimize global best access*/
 		if (fx < local_best.fx) {
@@ -165,24 +159,25 @@ int main(int argc, char *argv[])
 	}
     if(rank!=0) {
         MPI_Send(&local_best, 1, MPI_DATA_TYPE, 0, 0, MPI_COMM_WORLD);
-        printf("Just sent f(x) = %15.7le\n", local_best.fx);
+        //printf("Just sent f(x) = %15.7le\n", local_best.fx);
 
     }
     else {
         for(i =0;i < size - 1; i++){
             MPI_Recv(&best, 1, MPI_DATA_TYPE, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            printf("Just received f(x) = %15.7le\n", best.fx);
+            //printf("Just received f(x) = %15.7le\n", best.fx);
             if (local_best.fx > best.fx) 
                 local_best = best;
         }
     }
-	t1 = get_wtime();
+	MPI_Reduce(&funevals, &total_funevals, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
     MPI_Barrier(MPI_COMM_WORLD);
+	t1 = get_wtime();
     if(rank == 0) {
         printf("\n\nFINAL RESULTS:\n");
 	    printf("Elapsed time = %.3lf s\n", t1-t0);
 	    printf("Total number of trials = %d\n", ntrials);
-	    printf("Total number of function evaluations = %ld\n", funevals);
+	    printf("Total number of function evaluations = %ld\n", total_funevals);
 	    printf("Best result at trial %d used %d iterations, %d function calls and returned\n", local_best.trial, local_best.nt, local_best.nf);
 	    for (i = 0; i < nvars; i++) {
 		    printf("x[%3d] = %15.7le \n", i, local_best.pt[i]);
