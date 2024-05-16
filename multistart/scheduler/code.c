@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include <omp.h>
 
-#define NUM_THREADS 16
+#define NUM_THREADS 64
 
 #define MAXVARS		(250)	/* max # of variables	     */
 #define EPSMIN		(1E-6)	/* ending value of stepsize  */
@@ -92,26 +92,20 @@ int main(int argc, char *argv[])
 	t0 = get_wtime();
 	unsigned short buffer[3];
 
-	#pragma omp parallel
-	#pragma omp single nowait
+	#pragma omp parallel for private(fx, nt, nf, startpt, endpt) firstprivate(local_best) default(shared) schedule(static)
 	for (trial = 0; trial < ntrials; trial++) {
-		buffer[0] = (short)trial;
-		buffer[1] = (short)trial + 1;
-		buffer[2] = (short)trial + 2;
+		buffer[0] = omp_get_thread_num();
+		buffer[1] = omp_get_thread_num() + 1;
+		buffer[2] = omp_get_thread_num() + 2;
 
 		/* starting guess for rosenbrock test function, search space in [-2, 2) */
-
-		//No need to parallelize, too small a number to make a difference
-		//do it if you have the time
 		for (i = 0; i < nvars; i++) {
 			startpt[i] = lower[i] + (upper[i]-lower[i])*erand48(buffer);
 		}
-		#pragma omp task private(fx, nt, nf, endpt) firstprivate(local_best, trial, startpt, buffer)
-		{
+
 		int term = -1;
     	mds(startpt, endpt, nvars, &fx, eps, maxfevals, maxiter, mu, theta, delta,
         &nt, &nf, lower, upper, &term);
-		
 #if DEBUG
 		printf("\n\n\nMDS %d USED %d ITERATIONS AND %d FUNCTION CALLS, AND RETURNED\n", trial, nt, nf);
 		for (i = 0; i < nvars; i++)
@@ -132,24 +126,22 @@ int main(int argc, char *argv[])
 
 		#pragma omp critical
 		{
-			if(local_best.fx < best.fx) {
-				best = local_best;
-				//printf("Process %d, best result yet is f(x) = %15.7le\n", omp_get_thread_num(), best.fx);
-			}
+		if(local_best.fx < best.fx) {
+			best = local_best;
+			//printf("Process %d, best result yet is f(x) = %15.7le\n", omp_get_thread_num(), best.fx);
 		}
 		}
 	}
 	t1 = get_wtime();
 
-	//printf("\n\nFINAL RESULTS:\n");
-	//printf("Elapsed time = %.3lf s\n", t1-t0);
-	printf("Elapsed time = %.3lf s ", t1-t0);
-	//printf("Total number of trials = %d\n", ntrials);
-	//printf("Total number of function evaluations = %ld\n", funevals);
-	//printf("Best result at trial %d used %d iterations, %d function calls and returned\n", best.trial, best.nt, best.nf);
-	//for (i = 0; i < nvars; i++) {
-	//	printf("x[%3d] = %15.7le \n", i, best.pt[i]);
-	//}
+	printf("\n\nFINAL RESULTS:\n");
+	printf("Elapsed time = %.3lf s\n", t1-t0);
+	printf("Total number of trials = %d\n", ntrials);
+	printf("Total number of function evaluations = %ld\n", funevals);
+	printf("Best result at trial %d used %d iterations, %d function calls and returned\n", best.trial, best.nt, best.nf);
+	for (i = 0; i < nvars; i++) {
+		printf("x[%3d] = %15.7le \n", i, best.pt[i]);
+	}
 	printf("f(x) = %15.7le\n", best.fx);
 
 	return 0;
