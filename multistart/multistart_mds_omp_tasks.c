@@ -59,7 +59,7 @@ int main(int argc, char *argv[])
 {
 	/* problem parameters */
 	int nvars = 4;		/* number of variables (problem dimension) */
-	int ntrials = 64;	/* number of trials */
+	int ntrials = 1024;	/* number of trials */
 	double lower[MAXVARS], upper[MAXVARS];	/* lower and upper bounds */
 
 	/* mds parameters */

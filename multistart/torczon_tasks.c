@@ -174,22 +174,25 @@ void mds(double *point, double *endpoint, int n, double *val, double eps, int ma
 			// when out of bounds!!!
 			found_better = 1;
 
-            for (i = 1; i < n + 1 &&found_better==1; i++) {
+			#pragma omp taskgroup
+			{
+            for (i = 1; i < n + 1; i++) {
 				#pragma omp task firstprivate(i)
 				{
-                for (j = 0; j < n &&found_better==1; j++) {
-					#pragma omp task firstprivate(i,j) //if(found_better==1)
+                for (j = 0; j < n; j++) {
+					#pragma omp task firstprivate(i,j)
 					{
                     r[i * n + j] = u[0 * n + j] - (u[i * n + j] - u[0 * n + j]);
                     if (r[i * n + j] > xr[j] || r[i * n + j] < xl[j]) {
                         #pragma omp atomic write
 						found_better = 0;
+						#pragma omp cancel taskgroup
                     }
 					}
                 }
             }
 			}
-			#pragma omp taskwait
+			}
 
             if (found_better == 1) {
                 for (i = 1; i < n + 1; i++) {
@@ -209,30 +212,40 @@ void mds(double *point, double *endpoint, int n, double *val, double eps, int ma
             if (found_better == 1) // expand
 			{
 				// Check expansion for out of bounds
+				#pragma omp taskgroup
+				{
 				out_of_bounds = 0;
 				for (i = 1; i < n + 1; i++) {
+					#pragma omp task firstprivate(i)
 					for (j = 0; j < n; j++) {
+						#pragma omp task firstprivate(i,j)
 						ec[i * n + j] = u[0 * n + j] - mu * ((u[i * n + j] - u[0 * n + j]));
 						if (ec[i * n + j] > xr[j] || ec[i * n + j] < xl[j]) {
+							#pragma omp atomic write
 							out_of_bounds = 1;
-							break;
+							#pragma omp cancel taskgroup
 						}
 					}
-					if (out_of_bounds == 1)
-						break;
+				}
 				}
 				// We now have the decision: if out_of_bounds = 0 proceed
 				// else proceed with the reflection (discard expansion)
 				if (out_of_bounds == 0) {
-
+					
 					fec[0] = fu[0];
+					#pragma omp taskgroup
+					{
 					for (i = 1; i < n + 1; i++) {
+						#pragma omp task firstprivate(i)
 						for (j = 0; j < n; j++) {
+							#pragma omp task firstprivate(i,j)
 							ec[i * n + j] = u[0 * n + j] - mu * ((u[i * n + j] - u[0 * n
 									+ j]));
 						}
 						fec[i] = f(&ec[i * n], n);
+						#pragma omp atomic write 
 						*nf = *nf + 1;
+					}
 					}
 
 					kec = minimum_simplex(fec, n);
@@ -247,13 +260,22 @@ void mds(double *point, double *endpoint, int n, double *val, double eps, int ma
 			} else // contract
 			{
 				fec[0] = fu[0];
+				#pragma omp taskgroup
+				{
 				for (i = 1; i < n + 1; i++) {
+					#pragma omp task firstprivate(i)
+					{
 					for (j = 0; j < n; j++) {
+						#pragma omp task firstprivate(i,j)
 						ec[i * n + j] = u[0 * n + j] + theta * ((u[i * n + j]
 								- u[0 * n + j]));
 					}
+					#pragma omp taskwait
 					fec[i] = f(&ec[i * n], n);
+					#pragma omp atomic write
 					*nf = *nf + 1;
+					}
+				}
 				}
 
 				kec = minimum_simplex(fec, n);
