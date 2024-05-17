@@ -179,5 +179,11 @@ f(x) =   1.2043904e-03
 
 TIME:
 
-4.6636
-4.6746
+
+Sequential:             42.096s
+
+Omp4t (5 run average):  10.357s (4.064 times faster)
+[10.373s, 10.330s, 10.392s, 10.368s, 10.323s]
+
+mpi4c (5 run average):
+[10.701s, 10.700s, 11.098s, 10.704s, 10.693s]

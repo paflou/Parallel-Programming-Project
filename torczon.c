@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <omp.h>
 
 extern double f(double *x, int n);
 
@@ -22,6 +23,7 @@ void initialize_simplex(double *u, int n, double *point, double delta) {
 		}
 	}
 }
+
 void print_simplex(double *u, double *fu, int n) {
 	int i, j;
 	for (i = 0; i < n + 1; i++) {
@@ -34,6 +36,7 @@ void print_simplex(double *u, double *fu, int n) {
 	printf("========================\n");
 
 }
+
 int minimum_simplex(double *fu, int n) {
 	int i;
 	double min = fu[0];
@@ -47,6 +50,7 @@ int minimum_simplex(double *fu, int n) {
 	}
 	return imin;
 }
+
 double simplex_size(double *u, int n) {
 	int i, j;
 	double *mesos, dist, max_dist;
@@ -74,6 +78,7 @@ double simplex_size(double *u, int n) {
 	free(mesos);
 	return max_dist;
 }
+
 void swap_simplex(double *u, double *fu, int n, int from, int to) {
 	int j;
 	double *tmp;
@@ -98,8 +103,10 @@ void swap_simplex(double *u, double *fu, int n, int from, int to) {
 	fu[to] = ftmp;
 	free(tmp);
 }
+
 void assign_simplex(double *s1, double *fs1, double *s2, double *fs2, int n) {
 	int i, j;
+	#pragma omp parallel for private(i, j) shared(s1, fs1, s2, fs2)
 	for (i = 1; i < n + 1; i++) {
 		for (j = 0; j < n; j++) {
 			s1[i * n + j] = s2[i * n + j];
@@ -107,6 +114,7 @@ void assign_simplex(double *s1, double *fs1, double *s2, double *fs2, int n) {
 		fs1[i] = fs2[i];
 	}
 }
+
 int inbounds_simplex(double *s, int n, double *xl, double *xr) {
 	int i, j;
 	for (i = 0; i < n + 1; i++) {
@@ -133,13 +141,14 @@ void mds(double *point, double *endpoint, int n, double *val, double eps, int ma
 
     iter = 0;
     *term = 0;
-    
     *nf = 0;
     initialize_simplex(u, n, point, delta);
 
+    #pragma omp parallel for private(i) shared(fu)
     for (i = 0; i < n + 1; i++) {
         fu[i] = f(&u[i * n], n); 
-			*nf = *nf + 1;
+        #pragma omp atomic
+        (*nf)++; 
     }
 
     k = minimum_simplex(fu, n);
@@ -148,8 +157,6 @@ void mds(double *point, double *endpoint, int n, double *val, double eps, int ma
     terminate = 0;
     iter = 0;
 
-	#pragma omp parallel
-	#pragma omp single nowait
     while (terminate == 0 && iter < maxiter) {
         k = minimum_simplex(fu, n);
         swap_simplex(u, fu, n, k, 0);
@@ -167,38 +174,26 @@ void mds(double *point, double *endpoint, int n, double *val, double eps, int ma
                 terminate = 1;
                 break;
             }
-			// rotation step
-			fr[0] = fu[0];
-			// Check rotation prior to function evaluation
-			// Consider failure when out of bounds so set found_better = 0
-			// when out of bounds!!!
-			found_better = 1;
 
-            for (i = 1; i < n + 1 &&found_better==1; i++) {
-				#pragma omp task firstprivate(i)
-				{
-                for (j = 0; j < n &&found_better==1; j++) {
-					#pragma omp task firstprivate(i,j) //if(found_better==1)
-					{
+            // Parallelize rotation step (if n is sufficiently large)
+            #pragma omp parallel for private(i, j) shared(found_better)
+            for (i = 1; i < n + 1; i++) {
+                for (j = 0; j < n; j++) {
                     r[i * n + j] = u[0 * n + j] - (u[i * n + j] - u[0 * n + j]);
                     if (r[i * n + j] > xr[j] || r[i * n + j] < xl[j]) {
-                        #pragma omp atomic write
-						found_better = 0;
+                        found_better = 0;
+                        break;
                     }
-					}
                 }
             }
-			}
-			#pragma omp taskwait
 
             if (found_better == 1) {
+                #pragma omp parallel for private(i) shared(fr)
                 for (i = 1; i < n + 1; i++) {
-					//#pragma omp task firstprivate(i)
                     fr[i] = f(&r[i * n], n);
-					//#pragma omp atomic write
-						*nf = *nf + 1;
+                    #pragma omp atomic
+                    (*nf)++;
                 }
-				
                 
                 found_better = 0;
                 k = minimum_simplex(fr, n); 

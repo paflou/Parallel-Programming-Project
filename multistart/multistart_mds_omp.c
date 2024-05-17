@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include <omp.h>
 
-#define NUM_THREADS 4
+#define NUM_THREADS 8
 
 #define MAXVARS		(250)	/* max # of variables	     */
 #define EPSMIN		(1E-6)	/* ending value of stepsize  */

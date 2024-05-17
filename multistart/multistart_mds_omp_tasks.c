@@ -62,8 +62,6 @@ int main(int argc, char *argv[])
 	int ntrials = 64;	/* number of trials */
 	double lower[MAXVARS], upper[MAXVARS];	/* lower and upper bounds */
 
-	omp_set_num_threads(NUM_THREADS);
-
 	/* mds parameters */
 	double eps = EPSMIN;
 	int maxfevals = 10000;
@@ -153,6 +151,5 @@ int main(int argc, char *argv[])
 	//	printf("x[%3d] = %15.7le \n", i, best.pt[i]);
 	//}
 	printf("f(x) = %15.7le\n", best.fx);
-
 	return 0;
 }
