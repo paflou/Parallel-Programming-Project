@@ -4,6 +4,7 @@
 #include <time.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <stddef.h>
 #include <mpi.h>
 
 #define MAXVARS		(250)	/* max # of variables	     */
@@ -184,6 +185,7 @@ int main(int argc, char *argv[])
 	    }
 	    printf("f(x) = %15.7le\n", local_best.fx);
     }
+    MPI_Type_free(&MPI_DATA_TYPE);
 	MPI_Finalize();
 
 	return 0;
