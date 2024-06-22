@@ -62,6 +62,8 @@ int main(int argc, char *argv[])
 	int ntrials = 64;	/* number of trials */
 	double lower[MAXVARS], upper[MAXVARS];	/* lower and upper bounds */
 
+	omp_set_num_threads(NUM_THREADS);
+
 	/* mds parameters */
 	double eps = EPSMIN;
 	int maxfevals = 10000;
@@ -142,15 +144,15 @@ int main(int argc, char *argv[])
 	}
 	t1 = get_wtime();
 
-	printf("\n\nFINAL RESULTS:\n");
-	printf("Elapsed time = %.3lf s\n", t1-t0);
+	//printf("\n\nFINAL RESULTS:\n");
+	//printf("Elapsed time = %.3lf s\n", t1-t0);
 	printf("Elapsed time = %.3lf s ", t1-t0);
-	printf("Total number of trials = %d\n", ntrials);
+	/*printf("Total number of trials = %d\n", ntrials);
 	printf("Total number of function evaluations = %ld\n", funevals);
 	printf("Best result at trial %d used %d iterations, %d function calls and returned\n", best.trial, best.nt, best.nf);
 	for (i = 0; i < nvars; i++) {
 		printf("x[%3d] = %15.7le \n", i, best.pt[i]);
-	}
+	}*/
 	printf("f(x) = %15.7le\n", best.fx);
 	return 0;
 }

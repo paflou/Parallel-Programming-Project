@@ -150,7 +150,9 @@ void mds(double *point, double *endpoint, int n, double *val, double eps, int ma
     iter = 0;
 
 	#pragma omp parallel
+	{
 	#pragma omp single nowait
+	{
     while (terminate == 0 && iter < maxiter) {
         k = minimum_simplex(fu, n);
         swap_simplex(u, fu, n, k, 0);
@@ -191,16 +193,18 @@ void mds(double *point, double *endpoint, int n, double *val, double eps, int ma
                     }
 					}
                 }
-            }
+            	}
 			}
 			}
 
             if (found_better == 1) {
                 for (i = 1; i < n + 1; i++) {
 					//#pragma omp task firstprivate(i)
+					{
                     fr[i] = f(&r[i * n], n);
 					//#pragma omp atomic write
 						*nf = *nf + 1;
+					}
                 }
 				
                 
@@ -270,8 +274,8 @@ void mds(double *point, double *endpoint, int n, double *val, double eps, int ma
 						#pragma omp task firstprivate(i,j)
 						ec[i * n + j] = u[0 * n + j] + theta * ((u[i * n + j]
 								- u[0 * n + j]));
+						#pragma omp taskwait
 					}
-					#pragma omp taskwait
 					fec[i] = f(&ec[i * n], n);
 					#pragma omp atomic write
 					*nf = *nf + 1;
@@ -291,7 +295,8 @@ void mds(double *point, double *endpoint, int n, double *val, double eps, int ma
         if (iter == maxiter)
             *term = 3;
     } 
-
+	}
+	}
     k = minimum_simplex(fu, n);
     swap_simplex(u, fu, n, k, 0);
     for (i = 0; i < n; i++)
