@@ -118,9 +118,7 @@ int main(int argc, char *argv[])
 
 		printf("f(x) = %15.7le\n", fx);
 #endif
-		//if(omp_get_thread_num()==1)
-		//printf("Process %d, current result is f(x) = %15.7le, best result is f(x) = %15.7le\n", omp_get_thread_num(), fx, best.fx);
-		
+	
 		/* keep the local best solution to minimize global best access*/
 		if (fx < local_best.fx) {
 			local_best.trial = trial;
