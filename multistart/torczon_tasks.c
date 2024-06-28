@@ -199,10 +199,8 @@ void mds(double *point, double *endpoint, int n, double *val, double eps, int ma
 
             if (found_better == 1) {
                 for (i = 1; i < n + 1; i++) {
-					//#pragma omp task firstprivate(i)
 					{
                     fr[i] = f(&r[i * n], n);
-					//#pragma omp atomic write
 						*nf = *nf + 1;
 					}
                 }

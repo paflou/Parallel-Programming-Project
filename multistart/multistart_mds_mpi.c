@@ -161,7 +161,6 @@ int main(int argc, char *argv[])
     if(rank!=0) {
         MPI_Send(&local_best, 1, MPI_DATA_TYPE, 0, 0, MPI_COMM_WORLD);
         //printf("Just sent f(x) = %15.7le\n", local_best.fx);
-
     }
     else {
         for(i =0;i < size - 1; i++){
@@ -174,6 +173,7 @@ int main(int argc, char *argv[])
 	MPI_Reduce(&funevals, &total_funevals, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
     MPI_Barrier(MPI_COMM_WORLD);
 	t1 = get_wtime();
+
     if(rank == 0) {
         printf("\n\nFINAL RESULTS:\n");
 	    printf("Elapsed time = %.3lf s\n", t1-t0);

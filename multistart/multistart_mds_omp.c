@@ -30,7 +30,6 @@ double f(double *x, int n)
     funevals++;
 	fv = 0.0;
     for (i=0; i<n-1; i++)   /* rosenbrock */
-		#pragma omp critical
         fv = fv + 100.0*pow((x[i+1]-x[i]*x[i]),2) + pow((x[i]-1.0),2);
 		usleep(1);	/* do not remove, introduces some artificial work */
 
@@ -97,7 +96,7 @@ int main(int argc, char *argv[])
 
 	unsigned short buffer[3];
 
-	#pragma omp parallel for private(fx, nt, nf, startpt, endpt,buffer) firstprivate(local_best) schedule(static, 1)
+	#pragma omp parallel for private(fx, nt, nf, startpt, endpt, buffer) firstprivate(local_best) schedule(static, 1)
 	for (trial = 0; trial < ntrials; trial++) {
 		buffer[0] = (short)trial;
 		buffer[1] = (short)trial + 1;
@@ -139,15 +138,14 @@ int main(int argc, char *argv[])
 	}
 	t1 = get_wtime();
 
-	//printf("\n\nFINAL RESULTS:\n");
-	//printf("Elapsed time = %.3lf s\n", t1-t0);
-	printf("Elapsed time = %.3lf s ", t1-t0);
-	/*printf("Total number of trials = %d\n", ntrials);
+	printf("\n\nFINAL RESULTS:\n");
+	printf("Elapsed time = %.3lf s\n", t1-t0);
+	printf("Total number of trials = %d\n", ntrials);
 	printf("Total number of function evaluations = %ld\n", funevals);
 	printf("Best result at trial %d used %d iterations, %d function calls and returned\n", best.trial, best.nt, best.nf);
 	for (i = 0; i < nvars; i++) {
 		printf("x[%3d] = %15.7le \n", i, best.pt[i]);
-	}*/
+	}
 	printf("f(x) = %15.7le\n", best.fx);
 
 	return 0;
